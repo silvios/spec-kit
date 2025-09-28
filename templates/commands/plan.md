@@ -13,7 +13,7 @@ $ARGUMENTS
 
 Given the implementation details provided as an argument, do this:
 
-1. Run `{SCRIPT}` from the repo root and parse JSON for FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, BRANCH. All future file paths must be absolute.
+1. Run `{SCRIPT}` from the repo root. If you are working within a project in the mono repo (e.g., inside a subdirectory of `projects/`), you **must** pass the path to that project via the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument. Parse the script's JSON output for FEATURE_SPEC, IMPL_PLAN, SPECS_DIR, and BRANCH. All future file paths must be absolute.
    - BEFORE proceeding, inspect FEATURE_SPEC for a `## Clarifications` section with at least one `Session` subheading. If missing or clearly ambiguous areas remain (vague adjectives, unresolved critical choices), PAUSE and instruct the user to run `/clarify` first to reduce rework. Only continue if: (a) Clarifications exist OR (b) an explicit user override is provided (e.g., "proceed without clarification"). Do not attempt to fabricate clarifications yourself.
 2. Read and analyze the feature specification to understand:
    - The feature requirements and user stories

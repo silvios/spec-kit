@@ -15,7 +15,7 @@ The text the user typed after `/specify` in the triggering message **is** the fe
 
 Given that feature description, do this:
 
-1. Run the script `{SCRIPT}` from repo root and parse its JSON output for BRANCH_NAME and SPEC_FILE. All file paths must be absolute.
+1. Run the script `{SCRIPT}` from repo root. If you are working within a project in the mono repo (e.g., inside a subdirectory of `projects/`), you **must** pass the path to that project via the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument. Parse the script's JSON output for BRANCH_NAME and SPEC_FILE. All file paths must be absolute.
   **IMPORTANT** You must only ever run this script once. The JSON is provided in the terminal as output - always refer to it to get the actual content you're looking for.
 2. Load `templates/spec-template.md` to understand required sections.
 3. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.

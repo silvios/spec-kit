@@ -19,7 +19,7 @@ Constitution Authority: The project constitution (`/memory/constitution.md`) is 
 
 Execution steps:
 
-1. Run `{SCRIPT}` once from repo root and parse JSON for FEATURE_DIR and AVAILABLE_DOCS. Derive absolute paths:
+1. Run `{SCRIPT}` once from repo root. If you are working within a project in the mono repo (e.g., inside a subdirectory of `projects/`), you **must** pass the path to that project via the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument. Parse the script's JSON output for FEATURE_DIR and AVAILABLE_DOCS. Derive absolute paths:
    - SPEC = FEATURE_DIR/spec.md
    - PLAN = FEATURE_DIR/plan.md
    - TASKS = FEATURE_DIR/tasks.md

@@ -52,11 +52,36 @@ set -o pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
+# Parse command line arguments
+PROJECT_PATH=""
+AGENT_TYPE=""
+
+# Use a more robust argument parsing loop
+while [[ $# -gt 0 ]]; do
+    key="$1"
+    case $key in
+        --project-path)
+        if [[ -n "$2" ]]; then
+            PROJECT_PATH="$2"
+            shift 2
+        else
+            echo "Error: --project-path requires a value" >&2
+            exit 1
+        fi
+        ;;
+        *)    # unknown option, assume it's the agent type
+        if [[ -z "$AGENT_TYPE" ]]; then
+            AGENT_TYPE="$1"
+        fi
+        shift # past argument
+        ;;
+    esac
+done
+
 # Get all paths and variables from common functions
-eval $(get_feature_paths)
+eval $(get_feature_paths "$PROJECT_PATH")
 
 NEW_PLAN="$IMPL_PLAN"  # Alias for compatibility with existing code
-AGENT_TYPE="${1:-}"
 
 # Agent-specific file paths  
 CLAUDE_FILE="$REPO_ROOT/CLAUDE.md"

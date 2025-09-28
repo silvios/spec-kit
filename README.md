@@ -151,6 +151,7 @@ The `specify` command supports the following options:
 | Argument/Option        | Type     | Description                                                                  |
 |------------------------|----------|------------------------------------------------------------------------------|
 | `<project-name>`       | Argument | Name for your new project directory (optional if using `--here`, or use `.` for current directory) |
+| `--project`            | Option   | Name for a new project within a mono repo (e.g., `@my-project`). This will create the project in the `./projects/` directory. |
 | `--ai`                 | Option   | AI assistant to use: `claude`, `gemini`, `copilot`, `cursor`, `qwen`, `opencode`, `codex`, `windsurf`, `kilocode`, `auggie`, or `roo` |
 | `--script`             | Option   | Script variant to use: `sh` (bash/zsh) or `ps` (PowerShell)                 |
 | `--ignore-agent-tools` | Flag     | Skip checks for AI agent tools like Claude Code                             |
@@ -169,6 +170,9 @@ specify init my-project
 
 # Initialize with specific AI assistant
 specify init my-project --ai claude
+
+# Initialize a new project in a mono repo
+specify init --project @my-app
 
 # Initialize with Cursor support
 specify init my-project --ai cursor

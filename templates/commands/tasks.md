@@ -11,7 +11,7 @@ User input:
 
 $ARGUMENTS
 
-1. Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute.
+1. Run `{SCRIPT}` from repo root. If you are working within a project in the mono repo (e.g., inside a subdirectory of `projects/`), you **must** pass the path to that project via the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument. Parse the script's JSON output for FEATURE_DIR and AVAILABLE_DOCS. All paths must be absolute.
 2. Load and analyze available design documents:
    - Always read plan.md for tech stack and libraries
    - IF EXISTS: Read data-model.md for entities

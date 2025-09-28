@@ -750,6 +750,7 @@ def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = 
 @app.command()
 def init(
     project_name: str = typer.Argument(None, help="Name for your new project directory (optional if using --here, or use '.' for current directory)"),
+    project: str = typer.Option(None, "--project", help="Project name for mono repo (e.g. '@itemdealfinder')"),
     ai_assistant: str = typer.Option(None, "--ai", help="AI assistant to use: claude, gemini, copilot, cursor, qwen, opencode, codex, windsurf, kilocode, or auggie"),
     script_type: str = typer.Option(None, "--script", help="Script type to use: sh or ps"),
     ignore_agent_tools: bool = typer.Option(False, "--ignore-agent-tools", help="Skip checks for AI agent tools like Claude Code"),
@@ -797,18 +798,33 @@ def init(
     if project_name == ".":
         here = True
         project_name = None  # Clear project_name to use existing validation logic
-    
+
     # Validate arguments
+    if project and (project_name or here):
+        console.print("[red]Error:[/red] The --project option cannot be used with a project name argument or the --here flag.")
+        raise typer.Exit(1)
+
     if here and project_name:
         console.print("[red]Error:[/red] Cannot specify both project name and --here flag")
         raise typer.Exit(1)
-    
-    if not here and not project_name:
-        console.print("[red]Error:[/red] Must specify either a project name, use '.' for current directory, or use --here flag")
+
+    if not here and not project_name and not project:
+        console.print("[red]Error:[/red] Must specify either a project name, use '.' for current directory, use the --here flag, or use the --project option.")
         raise typer.Exit(1)
-    
+
     # Determine project directory
-    if here:
+    if project:
+        if not project.startswith('@'):
+            console.print("[red]Error:[/red] Project names in a mono repo must start with '@'.")
+            raise typer.Exit(1)
+        project_path = Path.cwd() / "projects" / project
+        project_name = project
+        if project_path.exists():
+            console.print(f"[red]Error:[/red] Project directory '[cyan]{project_path}[/cyan]' already exists.")
+            raise typer.Exit(1)
+        # Create the parent 'projects' directory if it doesn't exist
+        project_path.parent.mkdir(exist_ok=True)
+    elif here:
         project_name = Path.cwd().name
         project_path = Path.cwd()
         
