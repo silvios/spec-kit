@@ -19,7 +19,28 @@ Constitution Authority: The project constitution (`/memory/constitution.md`) is 
 
 Execution steps:
 
-1. Run `{SCRIPT}` once from repo root and parse JSON for FEATURE_DIR and AVAILABLE_DOCS. Derive absolute paths:
+The user input after `/<command>` can follow two formats:
+1.  **Mono Repo:** `/<command> <project-name> [optional-args]` (e.g., `/analyze @my-app`)
+2.  **Single Project:** `/<command> [optional-args]` (e.g., `/analyze`)
+
+You **MUST** parse the arguments to determine the context.
+
+Given the arguments, do this:
+
+1.  **Parse Arguments**:
+    *   Check if the first argument starts with `@`.
+    *   **If it does**:
+        *   The first argument is the `PROJECT_NAME`.
+        *   Construct the `PROJECT_PATH` like this: `./projects/PROJECT_NAME`.
+    *   **If it does not**:
+        *   There is no `PROJECT_NAME` or `PROJECT_PATH`.
+
+2.  **Execute Script**:
+    *   Run the script defined in `{SCRIPT}` from the repository root.
+    *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
+    *   **Example (Mono Repo, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
+    *   Parse the script's JSON output for `FEATURE_DIR` and `AVAILABLE_DOCS`. Derive absolute paths:
    - SPEC = FEATURE_DIR/spec.md
    - PLAN = FEATURE_DIR/plan.md
    - TASKS = FEATURE_DIR/tasks.md

@@ -16,6 +16,7 @@ function Get-RepoRoot {
 }
 
 function Get-CurrentBranch {
+    param([string]$ProjectPath)
     # First check if SPECIFY_FEATURE environment variable is set
     if ($env:SPECIFY_FEATURE) {
         return $env:SPECIFY_FEATURE
@@ -33,7 +34,12 @@ function Get-CurrentBranch {
     
     # For non-git repos, try to find the latest feature directory
     $repoRoot = Get-RepoRoot
-    $specsDir = Join-Path $repoRoot "specs"
+    $specsDir = ""
+    if (-not [string]::IsNullOrEmpty($ProjectPath)) {
+        $specsDir = Join-Path $ProjectPath "_specs"
+    } else {
+        $specsDir = Join-Path $repoRoot "_specs"
+    }
     
     if (Test-Path $specsDir) {
         $latestFeature = ""
@@ -88,15 +94,22 @@ function Test-FeatureBranch {
 }
 
 function Get-FeatureDir {
-    param([string]$RepoRoot, [string]$Branch)
-    Join-Path $RepoRoot "specs/$Branch"
+    param([string]$BasePath, [string]$Branch)
+    Join-Path $BasePath "_specs/$Branch"
 }
 
 function Get-FeaturePathsEnv {
+    param([string]$ProjectPath)
     $repoRoot = Get-RepoRoot
-    $currentBranch = Get-CurrentBranch
+    $currentBranch = Get-CurrentBranch -ProjectPath $ProjectPath
     $hasGit = Test-HasGit
-    $featureDir = Get-FeatureDir -RepoRoot $repoRoot -Branch $currentBranch
+
+    $basePath = $repoRoot
+    if (-not [string]::IsNullOrEmpty($ProjectPath)) {
+        $basePath = $ProjectPath
+    }
+
+    $featureDir = Get-FeatureDir -BasePath $basePath -Branch $currentBranch
     
     [PSCustomObject]@{
         REPO_ROOT     = $repoRoot
