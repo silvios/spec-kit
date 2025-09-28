@@ -1,8 +1,8 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
 scripts:
-  sh: scripts/bash/create-new-feature.sh --json "{ARGS}"
-  ps: scripts/powershell/create-new-feature.ps1 -Json "{ARGS}"
+  sh: scripts/bash/create-new-feature.sh --json
+  ps: scripts/powershell/create-new-feature.ps1 -Json
 ---
 
 The user input to you can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
@@ -11,12 +11,33 @@ User input:
 
 $ARGUMENTS
 
-The text the user typed after `/specify` in the triggering message **is** the feature description. Assume you always have it available in this conversation even if `{ARGS}` appears literally below. Do not ask the user to repeat it unless they provided an empty command.
+The user input after `/specify` can follow two formats:
+1.  **Mono Repo:** `/<command> <project-name> <feature-description>` (e.g., `/specify @my-app build a login page`)
+2.  **Single Project:** `/<command> <feature-description>` (e.g., `/specify build a login page`)
 
-Given that feature description, do this:
+You **MUST** parse the arguments to determine the context.
 
-1. Run the script `{SCRIPT}` from repo root. If you are working within a project in the mono repo (e.g., inside a subdirectory of `projects/`), you **must** pass the path to that project via the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument. Parse the script's JSON output for BRANCH_NAME and SPEC_FILE. All file paths must be absolute.
-  **IMPORTANT** You must only ever run this script once. The JSON is provided in the terminal as output - always refer to it to get the actual content you're looking for.
+Given the arguments, do this:
+
+1.  **Parse Arguments**:
+    *   Check if the first argument starts with `@`.
+    *   **If it does**:
+        *   The first argument is the `PROJECT_NAME`.
+        *   Construct the `PROJECT_PATH` like this: `./projects/PROJECT_NAME`.
+        *   The rest of the arguments are the `FEATURE_DESCRIPTION`.
+    *   **If it does not**:
+        *   There is no `PROJECT_NAME` or `PROJECT_PATH`.
+        *   All arguments are the `FEATURE_DESCRIPTION`.
+
+2.  **Execute Script**:
+    *   Run the script defined in `{SCRIPT}` from the repository root.
+    *   Append the `FEATURE_DESCRIPTION` as arguments to the script.
+    *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
+    *   **Example (Mono Repo, sh):** `scripts/bash/create-new-feature.sh --json --project-path ./projects/@my-app build a login page`
+    *   **Example (Single Project, sh):** `scripts/bash/create-new-feature.sh --json build a login page`
+    *   Parse the script's JSON output for `BRANCH_NAME` and `SPEC_FILE`. All file paths must be absolute.
+
+  **IMPORTANT**: You must only ever run this script once per command.
 2. Load `templates/spec-template.md` to understand required sections.
 3. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
 4. Report completion with branch name, spec file path, and readiness for the next phase.

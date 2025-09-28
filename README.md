@@ -83,8 +83,14 @@ Use the **`/constitution`** command to create your project's governing principle
 
 Use the **`/specify`** command to describe what you want to build. Focus on the **what** and **why**, not the tech stack.
 
+For a single project repository, the command is straightforward:
 ```bash
-/specify Build an application that can help me organize my photos in separate photo albums. Albums are grouped by date and can be re-organized by dragging and dropping on the main page. Albums are never in other nested albums. Within each album, photos are previewed in a tile-like interface.
+/specify Build an application that can help me organize my photos.
+```
+
+For a project within a mono repo, you must provide the project name as the first argument:
+```bash
+/specify @photo-app Build an application that can help me organize my photos.
 ```
 
 ### 4. Create a technical implementation plan
