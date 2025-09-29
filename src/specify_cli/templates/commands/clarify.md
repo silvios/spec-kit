@@ -1,8 +1,8 @@
 ---
 description: Identify underspecified areas in the current feature spec by asking up to 5 highly targeted clarification questions and encoding answers back into the spec.
 scripts:
-   sh: .specify/scripts/bash/check-prerequisites.sh --json --paths-only
-   ps: .specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
+   sh: ./.specify/scripts/bash/check-prerequisites.sh --json --paths-only
+   ps: ./.specify/scripts/powershell/check-prerequisites.ps1 -Json -PathsOnly
 ---
 
 The user input to you can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
@@ -36,8 +36,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --paths-only --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --paths-only`
+    *   **Example (Mono Repo, sh):** `./.specify/scripts/bash/check-prerequisites.sh --json --paths-only --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `./.specify/scripts/bash/check-prerequisites.sh --json --paths-only`
     *   Parse the script's JSON output for `FEATURE_DIR` and `FEATURE_SPEC`.
    - `FEATURE_DIR`
    - `FEATURE_SPEC`

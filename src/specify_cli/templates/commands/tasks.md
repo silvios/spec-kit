@@ -1,8 +1,8 @@
 ---
 description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
 scripts:
-  sh: .specify/scripts/bash/check-prerequisites.sh --json
-  ps: .specify/scripts/powershell/check-prerequisites.ps1 -Json
+  sh: ./.specify/scripts/bash/check-prerequisites.sh --json
+  ps: ./.specify/scripts/powershell/check-prerequisites.ps1 -Json
 ---
 
 The user input to you can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
@@ -30,8 +30,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `.specify/scripts/bash/check-prerequisites.sh --json`
+    *   **Example (Mono Repo, sh):** `./.specify/scripts/bash/check-prerequisites.sh --json --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `./.specify/scripts/bash/check-prerequisites.sh --json`
     *   Parse the script's JSON output for `FEATURE_DIR` and `AVAILABLE_DOCS`. All paths must be absolute.
 2. Load and analyze available design documents:
    - Always read plan.md for tech stack and libraries
@@ -46,7 +46,7 @@ Given the arguments, do this:
    - Generate tasks based on what's available
 
 3. Generate tasks following the template:
-   - Use `.specify/templates/tasks-template.md` as the base
+   - Use `./.specify/templates/tasks-template.md` as the base
    - Replace example tasks with actual tasks based on:
      * **Setup tasks**: Project init, dependencies, linting
      * **Test tasks [P]**: One per contract, one per integration scenario

@@ -1,8 +1,8 @@
 ---
 description: Perform a non-destructive cross-artifact consistency and quality analysis across spec.md, plan.md, and tasks.md after task generation.
 scripts:
-  sh: .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-  ps: .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks
+  sh: ./.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
+  ps: ./.specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks
 ---
 
 The user input to you can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
@@ -15,7 +15,7 @@ Goal: Identify inconsistencies, duplications, ambiguities, and underspecified it
 
 STRICTLY READ-ONLY: Do **not** modify any files. Output a structured analysis report. Offer an optional remediation plan (user must explicitly approve before any follow-up editing commands would be invoked manually).
 
-Constitution Authority: The project constitution (`.specify/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `/analyze`.
+Constitution Authority: The project constitution (`./.specify/memory/constitution.md`) is **non-negotiable** within this analysis scope. Constitution conflicts are automatically CRITICAL and require adjustment of the spec, plan, or tasks—not dilution, reinterpretation, or silent ignoring of the principle. If a principle itself needs to change, that must occur in a separate, explicit constitution update outside `/analyze`.
 
 Execution steps:
 
@@ -38,8 +38,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
+    *   **Example (Mono Repo, sh):** `./.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `./.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
     *   Parse the script's JSON output for `FEATURE_DIR` and `AVAILABLE_DOCS`. Derive absolute paths:
    - SPEC = FEATURE_DIR/spec.md
    - PLAN = FEATURE_DIR/plan.md
@@ -50,7 +50,7 @@ Given the arguments, do this:
    - Parse spec.md sections: Overview/Context, Functional Requirements, Non-Functional Requirements, User Stories, Edge Cases (if present).
    - Parse plan.md: Architecture/stack choices, Data Model references, Phases, Technical constraints.
    - Parse tasks.md: Task IDs, descriptions, phase grouping, parallel markers [P], referenced file paths.
-   - Load constitution `.specify/memory/constitution.md` for principle validation.
+   - Load constitution `./.specify/memory/constitution.md` for principle validation.
 
 3. Build internal semantic models:
    - Requirements inventory: Each functional + non-functional requirement with a stable key (derive slug based on imperative phrase; e.g., "User can upload file" -> `user-can-upload-file`).

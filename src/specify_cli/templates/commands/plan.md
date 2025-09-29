@@ -1,8 +1,8 @@
 ---
 description: Execute the implementation planning workflow using the plan template to generate design artifacts.
 scripts:
-  sh: .specify/scripts/bash/setup-plan.sh --json
-  ps: .specify/scripts/powershell/setup-plan.ps1 -Json
+  sh: ./.specify/scripts/bash/setup-plan.sh --json
+  ps: ./.specify/scripts/powershell/setup-plan.ps1 -Json
 ---
 
 The user input to you can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
@@ -32,8 +32,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/setup-plan.sh --json --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `.specify/scripts/bash/setup-plan.sh --json`
+    *   **Example (Mono Repo, sh):** `./.specify/scripts/bash/setup-plan.sh --json --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `./.specify/scripts/bash/setup-plan.sh --json`
     *   Parse the script's JSON output for `FEATURE_SPEC`, `IMPL_PLAN`, `SPECS_DIR`, and `BRANCH`. All file paths must be absolute.
    - BEFORE proceeding, inspect FEATURE_SPEC for a `## Clarifications` section with at least one `Session` subheading. If missing or clearly ambiguous areas remain (vague adjectives, unresolved critical choices), PAUSE and instruct the user to run `/clarify` first to reduce rework. Only continue if: (a) Clarifications exist OR (b) an explicit user override is provided (e.g., "proceed without clarification"). Do not attempt to fabricate clarifications yourself.
 2. Read and analyze the feature specification to understand:
@@ -42,10 +42,10 @@ Given the arguments, do this:
    - Success criteria and acceptance criteria
    - Any technical constraints or dependencies mentioned
 
-3. Read the constitution at `.specify/memory/constitution.md` to understand constitutional requirements.
+3. Read the constitution at `./.specify/memory/constitution.md` to understand constitutional requirements.
 
 4. Execute the implementation plan template:
-   - Load `.specify/templates/plan-template.md` (already copied to IMPL_PLAN path)
+   - Load `./.specify/templates/plan-template.md` (already copied to IMPL_PLAN path)
    - Set Input path to FEATURE_SPEC
    - Run the Execution Flow (main) function steps 1-9
    - The template is self-contained and executable

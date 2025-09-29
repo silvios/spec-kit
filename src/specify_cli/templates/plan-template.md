@@ -1,8 +1,8 @@
 ---
 description: "Implementation plan template for feature development"
 scripts:
-  sh: .specify/scripts/bash/update-agent-context.sh __AGENT__
-  ps: .specify/scripts/powershell/update-agent-context.ps1 -AgentType __AGENT__
+  sh: ./.specify/scripts/bash/update-agent-context.sh __AGENT__
+  ps: ./.specify/scripts/powershell/update-agent-context.ps1 -AgentType __AGENT__
 ---
 
 # Implementation Plan: [FEATURE]
@@ -172,7 +172,7 @@ directories captured above]
 *This section describes what the /tasks command will do - DO NOT execute during /plan*
 
 **Task Generation Strategy**:
-- Load `.specify/templates/tasks-template.md` as base
+- Load `./.specify/templates/tasks-template.md` as base
 - Generate tasks from Phase 1 design docs (contracts, data model, quickstart)
 - Each contract → contract test task [P]
 - Each entity → model creation task [P] 
