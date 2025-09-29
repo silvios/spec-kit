@@ -473,9 +473,9 @@ def scaffold_project_from_local_files(
             tracker.add("copy-templates", "Copy templates")
             tracker.complete("copy-templates")
 
-        # 2. Copy scripts into .specify/scripts
-        dest_scripts_dir = dest_specify_dir / "scripts"
-        dest_scripts_dir.mkdir(exist_ok=True)
+        # 2. Copy scripts into .specify/scripts/<script_type>
+        dest_scripts_root = dest_specify_dir / "scripts"
+        dest_scripts_root.mkdir(exist_ok=True)
 
         # Map short script type names to their full directory names
         script_type_map = {
@@ -488,13 +488,9 @@ def scaffold_project_from_local_files(
         if not source_script_type_dir.is_dir():
              raise FileNotFoundError(f"Script type '{script_type}' directory not found in {source_scripts_path}.")
 
-        # Copy contents of script type dir into .specify/scripts, not the directory itself
-        for item in source_script_type_dir.iterdir():
-            dest_item = dest_scripts_dir / item.name
-            if item.is_dir():
-                shutil.copytree(item, dest_item, dirs_exist_ok=True)
-            else:
-                shutil.copy2(item, dest_item)
+        # Copy the script type directory into .specify/scripts
+        dest_script_type_dir = dest_scripts_root / script_type_full_name
+        shutil.copytree(source_script_type_dir, dest_script_type_dir, dirs_exist_ok=True)
 
         if tracker:
             tracker.add("copy-scripts", f"Copy {script_type} scripts")
