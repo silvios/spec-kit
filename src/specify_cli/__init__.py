@@ -32,6 +32,7 @@ import tempfile
 import shutil
 import shlex
 import json
+import re
 from pathlib import Path
 from typing import Optional, Tuple
 
@@ -435,6 +436,64 @@ def init_git_repo(project_path: Path, quiet: bool = False) -> bool:
 
 
 
+def _convert_md_to_toml(md_content: str) -> str:
+    """Convert markdown with frontmatter to a TOML string for Gemini/Claude commands."""
+
+    # Safely parse frontmatter and content
+    frontmatter_match = re.match(r"---\n(.*?)\n---\n(.*)", md_content, re.DOTALL)
+    if not frontmatter_match:
+        # If no frontmatter, treat the whole file as the prompt
+        frontmatter_text = ""
+        content = md_content.strip()
+    else:
+        frontmatter_text = frontmatter_match.group(1)
+        content = frontmatter_match.group(2).strip()
+
+    # Description from frontmatter
+    description_match = re.search(r"description:\s*(.*)", frontmatter_text)
+    description = description_match.group(1).strip() if description_match else ""
+
+    # Gemini-specific 'tool' definition from scripts
+    scripts_sh_match = re.search(r"sh:\s*(.*)", frontmatter_text)
+    scripts_ps_match = re.search(r"ps:\s*(.*)", frontmatter_text)
+
+    sh_command = scripts_sh_match.group(1).strip() if scripts_sh_match else ""
+    ps_command = scripts_ps_match.group(1).strip() if scripts_ps_match else ""
+
+    # Build TOML sections
+    toml_parts = []
+    if description:
+        toml_parts.append(f'description = "{description}"')
+
+    # Add prompt with multiline string syntax
+    toml_parts.append(f'prompt = """\n{content}\n"""')
+
+    # Add tool configuration, preferring PowerShell on Windows
+    # Note: This logic can be simplified if both script types are always present
+    if os.name == 'nt' and ps_command:
+        executable = ps_command.split()[0]
+        args = ps_command.split()[1:]
+        # Gemini tools expect 'powershell.exe' or 'pwsh.exe'
+        if executable.lower().endswith(".ps1"):
+             executable = "powershell.exe"
+
+        toml_parts.append("\n[[tool.powershell]]")
+        toml_parts.append(f'command = "{executable}"')
+        # Format args as a TOML array of strings
+        toml_parts.append(f'args = {json.dumps(args)}')
+
+    elif sh_command: # Default to bash/sh
+        executable = sh_command.split()[0]
+        args = sh_command.split()[1:]
+
+        toml_parts.append("\n[[tool.bash]]")
+        toml_parts.append(f'command = "{executable}"')
+        # Format args as a TOML array of strings
+        toml_parts.append(f'args = {json.dumps(args)}')
+
+    return "\n".join(toml_parts)
+
+
 def scaffold_project_from_local_files(
     project_path: Path,
     ai_assistant: str,
@@ -449,7 +508,6 @@ def scaffold_project_from_local_files(
         tracker.start("scaffold", "Scaffolding project from local files")
 
     try:
-        # This is the most reliable way to get the path to package data
         package_dir = Path(__file__).parent.resolve()
         source_templates_path = package_dir / "templates"
         source_scripts_path = package_dir / "scripts"
@@ -459,63 +517,46 @@ def scaffold_project_from_local_files(
         if not source_scripts_path.is_dir():
              raise FileNotFoundError(f"Packaged 'scripts' directory not found in {package_dir}.")
 
-        # Create project directory if it doesn't exist
         project_path.mkdir(parents=True, exist_ok=True)
-
-        # Destination for .specify folder
         dest_specify_dir = project_path / ".specify"
         dest_specify_dir.mkdir(exist_ok=True)
 
-        # 1. Copy templates into .specify/templates
+        # 1. Selectively copy templates into .specify/templates (NO commands)
         dest_templates_dir = dest_specify_dir / "templates"
-        shutil.copytree(source_templates_path, dest_templates_dir, dirs_exist_ok=True)
+        dest_templates_dir.mkdir(exist_ok=True)
+        for template_file in source_templates_path.iterdir():
+            if template_file.is_file():
+                shutil.copy(template_file, dest_templates_dir)
         if tracker:
-            tracker.add("copy-templates", "Copy templates")
+            tracker.add("copy-templates", "Copy base templates")
             tracker.complete("copy-templates")
 
         # 2. Copy scripts into .specify/scripts/<script_type>
         dest_scripts_root = dest_specify_dir / "scripts"
         dest_scripts_root.mkdir(exist_ok=True)
-
-        # Map short script type names to their full directory names
-        script_type_map = {
-            "ps": "powershell",
-            "sh": "bash",
-        }
+        script_type_map = {"ps": "powershell", "sh": "bash"}
         script_type_full_name = script_type_map.get(script_type, script_type)
-
         source_script_type_dir = source_scripts_path / script_type_full_name
         if not source_script_type_dir.is_dir():
              raise FileNotFoundError(f"Script type '{script_type}' directory not found in {source_scripts_path}.")
-
-        # Copy the script type directory into .specify/scripts
         dest_script_type_dir = dest_scripts_root / script_type_full_name
         shutil.copytree(source_script_type_dir, dest_script_type_dir, dirs_exist_ok=True)
-
         if tracker:
             tracker.add("copy-scripts", f"Copy {script_type} scripts")
             tracker.complete("copy-scripts")
 
         # 3. Create agent-specific file in the root
         agent_file_map = {
-            "claude": "CLAUDE.md",
-            "gemini": "GEMINI.md",
-            "copilot": ".github/copilot-instructions.md",
-            "cursor": ".cursor/rules/specify-rules.mdc",
-            "qwen": "QWEN.md",
-            "opencode": "AGENTS.md",
-            "codex": "AGENTS.md",
-            "windsurf": ".windsurf/rules/specify-rules.md",
-            "kilocode": ".kilocode/rules/specify-rules.md",
-            "auggie": ".augment/rules/specify-rules.md",
-            "roo": ".roo/rules/specify-rules.md",
+            "claude": "CLAUDE.md", "gemini": "GEMINI.md",
+            "copilot": ".github/copilot-instructions.md", "cursor": ".cursor/rules/specify-rules.mdc",
+            "qwen": "QWEN.md", "opencode": "AGENTS.md", "codex": "AGENTS.md",
+            "windsurf": ".windsurf/rules/specify-rules.md", "kilocode": ".kilocode/rules/specify-rules.md",
+            "auggie": ".augment/rules/specify-rules.md", "roo": ".roo/rules/specify-rules.md",
         }
-        
         if ai_assistant in agent_file_map:
             agent_file_name = agent_file_map[ai_assistant]
             dest_agent_file = project_path / agent_file_name
             source_agent_template = source_templates_path / "agent-file-template.md"
-
             dest_agent_file.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy(source_agent_template, dest_agent_file)
             if tracker:
@@ -526,7 +567,6 @@ def scaffold_project_from_local_files(
         if tracker:
             tracker.start("install-commands")
 
-        # Map AI assistant to its command directory and file extension
         agent_command_config = {
             "gemini": {"dir": ".gemini/commands", "ext": ".toml"},
             "claude": {"dir": ".claude/commands", "ext": ".toml"},
@@ -545,19 +585,24 @@ def scaffold_project_from_local_files(
             config = agent_command_config[ai_assistant]
             dest_command_dir = project_path / config["dir"]
             dest_command_dir.mkdir(parents=True, exist_ok=True)
-
             source_command_templates = source_templates_path / "commands"
 
-            for command_template in source_command_templates.iterdir():
-                if command_template.is_file() and command_template.suffix == '.md':
-                    dest_file = dest_command_dir / f"{command_template.stem}{config['ext']}"
+            for command_template in source_command_templates.glob("*.md"):
+                dest_file = dest_command_dir / f"{command_template.stem}{config['ext']}"
+
+                if config['ext'] == '.toml':
+                    # Convert to TOML for Gemini/Claude
+                    md_content = command_template.read_text(encoding="utf-8")
+                    toml_content = _convert_md_to_toml(md_content)
+                    dest_file.write_text(toml_content, encoding="utf-8")
+                else:
+                    # Just copy for other agents
                     shutil.copy(command_template, dest_file)
 
             if tracker:
                 tracker.complete("install-commands", f"Installed to {config['dir']}")
         elif tracker:
             tracker.skip("install-commands", f"No commands for {ai_assistant}")
-
 
         if tracker:
             tracker.complete("scaffold")
