@@ -1,8 +1,8 @@
 ---
 description: Perform a non-destructive cross-artifact consistency and quality analysis across spec.md, plan.md, and tasks.md after task generation.
 scripts:
-  sh: scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
-  ps: scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks
+  sh: .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks
+  ps: .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks
 ---
 
 The user input to you can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
@@ -38,8 +38,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
+    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
     *   Parse the script's JSON output for `FEATURE_DIR` and `AVAILABLE_DOCS`. Derive absolute paths:
    - SPEC = FEATURE_DIR/spec.md
    - PLAN = FEATURE_DIR/plan.md

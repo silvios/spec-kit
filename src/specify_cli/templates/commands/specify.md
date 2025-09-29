@@ -1,8 +1,8 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
 scripts:
-  sh: scripts/bash/create-new-feature.sh --json
-  ps: scripts/powershell/create-new-feature.ps1 -Json
+  sh: .specify/scripts/bash/create-new-feature.sh --json
+  ps: .specify/scripts/powershell/create-new-feature.ps1 -Json
 ---
 
 The user input to you can be provided directly by the agent or as a command argument - you **MUST** consider it before proceeding with the prompt (if not empty).
