@@ -473,12 +473,25 @@ def scaffold_project_from_local_files(
             tracker.add("copy-templates", "Copy templates")
             tracker.complete("copy-templates")
 
-        # 2. Copy scripts into .specify/scripts
-        dest_scripts_dir = dest_specify_dir / "scripts"
-        source_script_type_dir = source_scripts_path / script_type
+        # 2. Copy scripts into .specify/scripts/<script_type>
+        dest_scripts_root = dest_specify_dir / "scripts"
+        dest_scripts_root.mkdir(exist_ok=True)
+
+        # Map short script type names to their full directory names
+        script_type_map = {
+            "ps": "powershell",
+            "sh": "bash",
+        }
+        script_type_full_name = script_type_map.get(script_type, script_type)
+
+        source_script_type_dir = source_scripts_path / script_type_full_name
         if not source_script_type_dir.is_dir():
              raise FileNotFoundError(f"Script type '{script_type}' directory not found in {source_scripts_path}.")
-        shutil.copytree(source_script_type_dir, dest_scripts_dir, dirs_exist_ok=True)
+
+        # Copy the script type directory into .specify/scripts
+        dest_script_type_dir = dest_scripts_root / script_type_full_name
+        shutil.copytree(source_script_type_dir, dest_script_type_dir, dirs_exist_ok=True)
+
         if tracker:
             tracker.add("copy-scripts", f"Copy {script_type} scripts")
             tracker.complete("copy-scripts")
@@ -508,6 +521,43 @@ def scaffold_project_from_local_files(
             if tracker:
                 tracker.add("create-agent-file", f"Create {agent_file_name}")
                 tracker.complete("create-agent-file")
+
+        # 4. Install AI-specific command templates
+        if tracker:
+            tracker.start("install-commands")
+
+        # Map AI assistant to its command directory and file extension
+        agent_command_config = {
+            "gemini": {"dir": ".gemini/commands", "ext": ".toml"},
+            "claude": {"dir": ".claude/commands", "ext": ".toml"},
+            "copilot": {"dir": ".github/copilot", "ext": ".md"},
+            "cursor": {"dir": ".cursor/commands", "ext": ".md"},
+            "qwen": {"dir": ".qwen/commands", "ext": ".md"},
+            "opencode": {"dir": ".opencode/prompts", "ext": ".md"},
+            "codex": {"dir": ".codex/prompts", "ext": ".md"},
+            "windsurf": {"dir": ".windsurf/prompts", "ext": ".md"},
+            "kilocode": {"dir": ".kilocode/prompts", "ext": ".md"},
+            "auggie": {"dir": ".augment/prompts", "ext": ".md"},
+            "roo": {"dir": ".roo/prompts", "ext": ".md"},
+        }
+
+        if ai_assistant in agent_command_config:
+            config = agent_command_config[ai_assistant]
+            dest_command_dir = project_path / config["dir"]
+            dest_command_dir.mkdir(parents=True, exist_ok=True)
+
+            source_command_templates = source_templates_path / "commands"
+
+            for command_template in source_command_templates.iterdir():
+                if command_template.is_file() and command_template.suffix == '.md':
+                    dest_file = dest_command_dir / f"{command_template.stem}{config['ext']}"
+                    shutil.copy(command_template, dest_file)
+
+            if tracker:
+                tracker.complete("install-commands", f"Installed to {config['dir']}")
+        elif tracker:
+            tracker.skip("install-commands", f"No commands for {ai_assistant}")
+
 
         if tracker:
             tracker.complete("scaffold")
@@ -790,6 +840,7 @@ def init(
         ("copy-templates", "Copy templates"),
         ("copy-scripts", "Copy scripts"),
         ("create-agent-file", "Create AI agent file"),
+        ("install-commands", "Install AI commands"),
         ("chmod", "Ensure scripts executable"),
         ("git", "Initialize git repository"),
         ("final", "Finalize")
