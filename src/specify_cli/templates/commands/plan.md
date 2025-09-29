@@ -54,7 +54,7 @@ Given the arguments, do this:
      * Phase 0 generates research.md
      * Phase 1 generates data-model.md, contracts/, quickstart.md
      * Phase 2 generates tasks.md
-   - Incorporate user-provided details from arguments into Technical Context: {ARGS}
+   - Incorporate user-provided details from arguments into Technical Context: {{args}}
    - Update Progress Tracking as you complete each phase
 
 5. Verify execution completed:

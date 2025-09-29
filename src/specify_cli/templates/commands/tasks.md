@@ -30,8 +30,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `scripts/bash/check-prerequisites.sh --json --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `scripts/bash/check-prerequisites.sh --json`
+    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `.specify/scripts/bash/check-prerequisites.sh --json`
     *   Parse the script's JSON output for `FEATURE_DIR` and `AVAILABLE_DOCS`. All paths must be absolute.
 2. Load and analyze available design documents:
    - Always read plan.md for tech stack and libraries
@@ -81,6 +81,6 @@ Given the arguments, do this:
    - Dependency notes
    - Parallel execution guidance
 
-Context for task generation: {ARGS}
+Context for task generation: {{args}}
 
 The tasks.md should be immediately executable - each task must be specific enough that an LLM can complete it without additional context.
