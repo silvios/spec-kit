@@ -444,10 +444,8 @@ def _convert_md_to_toml(md_content: str) -> str:
     if not frontmatter_match:
         # If no frontmatter, treat the whole file as the prompt
         frontmatter_text = ""
-        content = md_content.strip()
     else:
         frontmatter_text = frontmatter_match.group(1)
-        content = frontmatter_match.group(2).strip()
 
     # Description from frontmatter
     description_match = re.search(r"description:\s*(.*)", frontmatter_text)
@@ -465,8 +463,8 @@ def _convert_md_to_toml(md_content: str) -> str:
     if description:
         toml_parts.append(f'description = "{description}"')
 
-    # Add prompt with multiline string syntax
-    toml_parts.append(f'prompt = """\n{content}\n"""')
+    # Add prompt with multiline string syntax, keeping the full original content
+    toml_parts.append(f'prompt = """\n{md_content.strip()}\n"""')
 
     # Add tool configuration, preferring PowerShell on Windows
     # Note: This logic can be simplified if both script types are always present
