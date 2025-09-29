@@ -11,7 +11,28 @@ User input:
 
 $ARGUMENTS
 
-1. Run `{SCRIPT}` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute.
+The user input after `/<command>` can follow two formats:
+1.  **Mono Repo:** `/<command> <project-name> [optional-args]` (e.g., `/implement @my-app`)
+2.  **Single Project:** `/<command> [optional-args]` (e.g., `/implement`)
+
+You **MUST** parse the arguments to determine the context.
+
+Given the arguments, do this:
+
+1.  **Parse Arguments**:
+    *   Check if the first argument starts with `@`.
+    *   **If it does**:
+        *   The first argument is the `PROJECT_NAME`.
+        *   Construct the `PROJECT_PATH` like this: `./projects/PROJECT_NAME`.
+    *   **If it does not**:
+        *   There is no `PROJECT_NAME` or `PROJECT_PATH`.
+
+2.  **Execute Script**:
+    *   Run the script defined in `{SCRIPT}` from the repository root.
+    *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
+    *   **Example (Mono Repo, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
+    *   Parse the script's JSON output for `FEATURE_DIR` and `AVAILABLE_DOCS`. All paths must be absolute.
 
 2. Load and analyze the implementation context:
    - **REQUIRED**: Read tasks.md for the complete task list and execution plan

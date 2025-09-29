@@ -433,273 +433,90 @@ def init_git_repo(project_path: Path, quiet: bool = False) -> bool:
         os.chdir(original_cwd)
 
 
-def download_template_from_github(ai_assistant: str, download_dir: Path, *, script_type: str = "sh", verbose: bool = True, show_progress: bool = True, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Tuple[Path, dict]:
-    repo_owner = "github"
-    repo_name = "spec-kit"
-    if client is None:
-        client = httpx.Client(verify=ssl_context)
-    
-    if verbose:
-        console.print("[cyan]Fetching latest release information...[/cyan]")
-    api_url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/releases/latest"
-    
-    try:
-        response = client.get(
-            api_url,
-            timeout=30,
-            follow_redirects=True,
-            headers=_github_auth_headers(github_token),
-        )
-        status = response.status_code
-        if status != 200:
-            msg = f"GitHub API returned {status} for {api_url}"
-            if debug:
-                msg += f"\nResponse headers: {response.headers}\nBody (truncated 500): {response.text[:500]}"
-            raise RuntimeError(msg)
-        try:
-            release_data = response.json()
-        except ValueError as je:
-            raise RuntimeError(f"Failed to parse release JSON: {je}\nRaw (truncated 400): {response.text[:400]}")
-    except Exception as e:
-        console.print(f"[red]Error fetching release information[/red]")
-        console.print(Panel(str(e), title="Fetch Error", border_style="red"))
-        raise typer.Exit(1)
-    
-    # Find the template asset for the specified AI assistant
-    assets = release_data.get("assets", [])
-    pattern = f"spec-kit-template-{ai_assistant}-{script_type}"
-    matching_assets = [
-        asset for asset in assets
-        if pattern in asset["name"] and asset["name"].endswith(".zip")
-    ]
-
-    asset = matching_assets[0] if matching_assets else None
-
-    if asset is None:
-        console.print(f"[red]No matching release asset found[/red] for [bold]{ai_assistant}[/bold] (expected pattern: [bold]{pattern}[/bold])")
-        asset_names = [a.get('name', '?') for a in assets]
-        console.print(Panel("\n".join(asset_names) or "(no assets)", title="Available Assets", border_style="yellow"))
-        raise typer.Exit(1)
-
-    download_url = asset["browser_download_url"]
-    filename = asset["name"]
-    file_size = asset["size"]
-    
-    if verbose:
-        console.print(f"[cyan]Found template:[/cyan] {filename}")
-        console.print(f"[cyan]Size:[/cyan] {file_size:,} bytes")
-        console.print(f"[cyan]Release:[/cyan] {release_data['tag_name']}")
-
-    zip_path = download_dir / filename
-    if verbose:
-        console.print(f"[cyan]Downloading template...[/cyan]")
-    
-    try:
-        with client.stream(
-            "GET",
-            download_url,
-            timeout=60,
-            follow_redirects=True,
-            headers=_github_auth_headers(github_token),
-        ) as response:
-            if response.status_code != 200:
-                body_sample = response.text[:400]
-                raise RuntimeError(f"Download failed with {response.status_code}\nHeaders: {response.headers}\nBody (truncated): {body_sample}")
-            total_size = int(response.headers.get('content-length', 0))
-            with open(zip_path, 'wb') as f:
-                if total_size == 0:
-                    for chunk in response.iter_bytes(chunk_size=8192):
-                        f.write(chunk)
-                else:
-                    if show_progress:
-                        with Progress(
-                            SpinnerColumn(),
-                            TextColumn("[progress.description]{task.description}"),
-                            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-                            console=console,
-                        ) as progress:
-                            task = progress.add_task("Downloading...", total=total_size)
-                            downloaded = 0
-                            for chunk in response.iter_bytes(chunk_size=8192):
-                                f.write(chunk)
-                                downloaded += len(chunk)
-                                progress.update(task, completed=downloaded)
-                    else:
-                        for chunk in response.iter_bytes(chunk_size=8192):
-                            f.write(chunk)
-    except Exception as e:
-        console.print(f"[red]Error downloading template[/red]")
-        detail = str(e)
-        if zip_path.exists():
-            zip_path.unlink()
-        console.print(Panel(detail, title="Download Error", border_style="red"))
-        raise typer.Exit(1)
-    if verbose:
-        console.print(f"Downloaded: {filename}")
-    metadata = {
-        "filename": filename,
-        "size": file_size,
-        "release": release_data["tag_name"],
-        "asset_url": download_url
-    }
-    return zip_path, metadata
 
 
-def download_and_extract_template(project_path: Path, ai_assistant: str, script_type: str, is_current_dir: bool = False, *, verbose: bool = True, tracker: StepTracker | None = None, client: httpx.Client = None, debug: bool = False, github_token: str = None) -> Path:
-    """Download the latest release and extract it to create a new project.
-    Returns project_path. Uses tracker if provided (with keys: fetch, download, extract, cleanup)
-    """
-    current_dir = Path.cwd()
-    
-    # Step: fetch + download combined
+def scaffold_project_from_local_files(
+    project_path: Path,
+    ai_assistant: str,
+    script_type: str,
+    is_current_dir: bool = False,
+    *,
+    tracker: StepTracker | None = None,
+    debug: bool = False,
+) -> Path:
+    """Scaffold a new project by copying local files from the package."""
     if tracker:
-        tracker.start("fetch", "contacting GitHub API")
+        tracker.start("scaffold", "Scaffolding project from local files")
+
     try:
-        zip_path, meta = download_template_from_github(
-            ai_assistant,
-            current_dir,
-            script_type=script_type,
-            verbose=verbose and tracker is None,
-            show_progress=(tracker is None),
-            client=client,
-            debug=debug,
-            github_token=github_token
-        )
+        # This is the most reliable way to get the path to package data
+        package_dir = Path(__file__).parent.resolve()
+        source_templates_path = package_dir / "templates"
+        source_scripts_path = package_dir / "scripts"
+
+        if not source_templates_path.is_dir():
+            raise FileNotFoundError(f"Packaged 'templates' directory not found in {package_dir}.")
+        if not source_scripts_path.is_dir():
+             raise FileNotFoundError(f"Packaged 'scripts' directory not found in {package_dir}.")
+
+        # Create project directory if it doesn't exist
+        project_path.mkdir(parents=True, exist_ok=True)
+
+        # Destination for .specify folder
+        dest_specify_dir = project_path / ".specify"
+        dest_specify_dir.mkdir(exist_ok=True)
+
+        # 1. Copy templates into .specify/templates
+        dest_templates_dir = dest_specify_dir / "templates"
+        shutil.copytree(source_templates_path, dest_templates_dir, dirs_exist_ok=True)
         if tracker:
-            tracker.complete("fetch", f"release {meta['release']} ({meta['size']:,} bytes)")
-            tracker.add("download", "Download template")
-            tracker.complete("download", meta['filename'])
-    except Exception as e:
+            tracker.add("copy-templates", "Copy templates")
+            tracker.complete("copy-templates")
+
+        # 2. Copy scripts into .specify/scripts
+        dest_scripts_dir = dest_specify_dir / "scripts"
+        source_script_type_dir = source_scripts_path / script_type
+        if not source_script_type_dir.is_dir():
+             raise FileNotFoundError(f"Script type '{script_type}' directory not found in {source_scripts_path}.")
+        shutil.copytree(source_script_type_dir, dest_scripts_dir, dirs_exist_ok=True)
         if tracker:
-            tracker.error("fetch", str(e))
-        else:
-            if verbose:
-                console.print(f"[red]Error downloading template:[/red] {e}")
-        raise
-    
-    if tracker:
-        tracker.add("extract", "Extract template")
-        tracker.start("extract")
-    elif verbose:
-        console.print("Extracting template...")
-    
-    try:
-        # Create project directory only if not using current directory
-        if not is_current_dir:
-            project_path.mkdir(parents=True)
+            tracker.add("copy-scripts", f"Copy {script_type} scripts")
+            tracker.complete("copy-scripts")
+
+        # 3. Create agent-specific file in the root
+        agent_file_map = {
+            "claude": "CLAUDE.md",
+            "gemini": "GEMINI.md",
+            "copilot": ".github/copilot-instructions.md",
+            "cursor": ".cursor/rules/specify-rules.mdc",
+            "qwen": "QWEN.md",
+            "opencode": "AGENTS.md",
+            "codex": "AGENTS.md",
+            "windsurf": ".windsurf/rules/specify-rules.md",
+            "kilocode": ".kilocode/rules/specify-rules.md",
+            "auggie": ".augment/rules/specify-rules.md",
+            "roo": ".roo/rules/specify-rules.md",
+        }
         
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            # List all files in the ZIP for debugging
-            zip_contents = zip_ref.namelist()
+        if ai_assistant in agent_file_map:
+            agent_file_name = agent_file_map[ai_assistant]
+            dest_agent_file = project_path / agent_file_name
+            source_agent_template = source_templates_path / "agent-file-template.md"
+
+            dest_agent_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(source_agent_template, dest_agent_file)
             if tracker:
-                tracker.start("zip-list")
-                tracker.complete("zip-list", f"{len(zip_contents)} entries")
-            elif verbose:
-                console.print(f"[cyan]ZIP contains {len(zip_contents)} items[/cyan]")
-            
-            # For current directory, extract to a temp location first
-            if is_current_dir:
-                with tempfile.TemporaryDirectory() as temp_dir:
-                    temp_path = Path(temp_dir)
-                    zip_ref.extractall(temp_path)
-                    
-                    # Check what was extracted
-                    extracted_items = list(temp_path.iterdir())
-                    if tracker:
-                        tracker.start("extracted-summary")
-                        tracker.complete("extracted-summary", f"temp {len(extracted_items)} items")
-                    elif verbose:
-                        console.print(f"[cyan]Extracted {len(extracted_items)} items to temp location[/cyan]")
-                    
-                    # Handle GitHub-style ZIP with a single root directory
-                    source_dir = temp_path
-                    if len(extracted_items) == 1 and extracted_items[0].is_dir():
-                        source_dir = extracted_items[0]
-                        if tracker:
-                            tracker.add("flatten", "Flatten nested directory")
-                            tracker.complete("flatten")
-                        elif verbose:
-                            console.print(f"[cyan]Found nested directory structure[/cyan]")
-                    
-                    # Copy contents to current directory
-                    for item in source_dir.iterdir():
-                        dest_path = project_path / item.name
-                        if item.is_dir():
-                            if dest_path.exists():
-                                if verbose and not tracker:
-                                    console.print(f"[yellow]Merging directory:[/yellow] {item.name}")
-                                # Recursively copy directory contents
-                                for sub_item in item.rglob('*'):
-                                    if sub_item.is_file():
-                                        rel_path = sub_item.relative_to(item)
-                                        dest_file = dest_path / rel_path
-                                        dest_file.parent.mkdir(parents=True, exist_ok=True)
-                                        shutil.copy2(sub_item, dest_file)
-                            else:
-                                shutil.copytree(item, dest_path)
-                        else:
-                            if dest_path.exists() and verbose and not tracker:
-                                console.print(f"[yellow]Overwriting file:[/yellow] {item.name}")
-                            shutil.copy2(item, dest_path)
-                    if verbose and not tracker:
-                        console.print(f"[cyan]Template files merged into current directory[/cyan]")
-            else:
-                # Extract directly to project directory (original behavior)
-                zip_ref.extractall(project_path)
-                
-                # Check what was extracted
-                extracted_items = list(project_path.iterdir())
-                if tracker:
-                    tracker.start("extracted-summary")
-                    tracker.complete("extracted-summary", f"{len(extracted_items)} top-level items")
-                elif verbose:
-                    console.print(f"[cyan]Extracted {len(extracted_items)} items to {project_path}:[/cyan]")
-                    for item in extracted_items:
-                        console.print(f"  - {item.name} ({'dir' if item.is_dir() else 'file'})")
-                
-                # Handle GitHub-style ZIP with a single root directory
-                if len(extracted_items) == 1 and extracted_items[0].is_dir():
-                    # Move contents up one level
-                    nested_dir = extracted_items[0]
-                    temp_move_dir = project_path.parent / f"{project_path.name}_temp"
-                    # Move the nested directory contents to temp location
-                    shutil.move(str(nested_dir), str(temp_move_dir))
-                    # Remove the now-empty project directory
-                    project_path.rmdir()
-                    # Rename temp directory to project directory
-                    shutil.move(str(temp_move_dir), str(project_path))
-                    if tracker:
-                        tracker.add("flatten", "Flatten nested directory")
-                        tracker.complete("flatten")
-                    elif verbose:
-                        console.print(f"[cyan]Flattened nested directory structure[/cyan]")
-                    
+                tracker.add("create-agent-file", f"Create {agent_file_name}")
+                tracker.complete("create-agent-file")
+
+        if tracker:
+            tracker.complete("scaffold")
+
     except Exception as e:
         if tracker:
-            tracker.error("extract", str(e))
-        else:
-            if verbose:
-                console.print(f"[red]Error extracting template:[/red] {e}")
-                if debug:
-                    console.print(Panel(str(e), title="Extraction Error", border_style="red"))
-        # Clean up project directory if created and not current directory
-        if not is_current_dir and project_path.exists():
-            shutil.rmtree(project_path)
-        raise typer.Exit(1)
-    else:
-        if tracker:
-            tracker.complete("extract")
-    finally:
-        if tracker:
-            tracker.add("cleanup", "Remove temporary archive")
-        # Clean up downloaded ZIP file
-        if zip_path.exists():
-            zip_path.unlink()
-            if tracker:
-                tracker.complete("cleanup")
-            elif verbose:
-                console.print(f"Cleaned up: {zip_path.name}")
-    
+            tracker.error("scaffold", str(e))
+        raise e
+
     return project_path
 
 
@@ -750,6 +567,7 @@ def ensure_executable_scripts(project_path: Path, tracker: StepTracker | None = 
 @app.command()
 def init(
     project_name: str = typer.Argument(None, help="Name for your new project directory (optional if using --here, or use '.' for current directory)"),
+    project: str = typer.Option(None, "--project", help="Project name for mono repo (e.g. '@itemdealfinder')"),
     ai_assistant: str = typer.Option(None, "--ai", help="AI assistant to use: claude, gemini, copilot, cursor, qwen, opencode, codex, windsurf, kilocode, or auggie"),
     script_type: str = typer.Option(None, "--script", help="Script type to use: sh or ps"),
     ignore_agent_tools: bool = typer.Option(False, "--ignore-agent-tools", help="Skip checks for AI agent tools like Claude Code"),
@@ -797,18 +615,33 @@ def init(
     if project_name == ".":
         here = True
         project_name = None  # Clear project_name to use existing validation logic
-    
+
     # Validate arguments
+    if project and (project_name or here):
+        console.print("[red]Error:[/red] The --project option cannot be used with a project name argument or the --here flag.")
+        raise typer.Exit(1)
+
     if here and project_name:
         console.print("[red]Error:[/red] Cannot specify both project name and --here flag")
         raise typer.Exit(1)
-    
-    if not here and not project_name:
-        console.print("[red]Error:[/red] Must specify either a project name, use '.' for current directory, or use --here flag")
+
+    if not here and not project_name and not project:
+        console.print("[red]Error:[/red] Must specify either a project name, use '.' for current directory, use the --here flag, or use the --project option.")
         raise typer.Exit(1)
-    
+
     # Determine project directory
-    if here:
+    if project:
+        if not project.startswith('@'):
+            console.print("[red]Error:[/red] Project names in a mono repo must start with '@'.")
+            raise typer.Exit(1)
+        project_path = Path.cwd() / "projects" / project
+        project_name = project
+        if project_path.exists():
+            console.print(f"[red]Error:[/red] Project directory '[cyan]{project_path}[/cyan]' already exists.")
+            raise typer.Exit(1)
+        # Create the parent 'projects' directory if it doesn't exist
+        project_path.parent.mkdir(exist_ok=True)
+    elif here:
         project_name = Path.cwd().name
         project_path = Path.cwd()
         
@@ -953,13 +786,11 @@ def init(
     tracker.add("script-select", "Select script type")
     tracker.complete("script-select", selected_script)
     for key, label in [
-        ("fetch", "Fetch latest release"),
-        ("download", "Download template"),
-        ("extract", "Extract template"),
-        ("zip-list", "Archive contents"),
-        ("extracted-summary", "Extraction summary"),
+        ("scaffold", "Scaffold project from local files"),
+        ("copy-templates", "Copy templates"),
+        ("copy-scripts", "Copy scripts"),
+        ("create-agent-file", "Create AI agent file"),
         ("chmod", "Ensure scripts executable"),
-        ("cleanup", "Cleanup"),
         ("git", "Initialize git repository"),
         ("final", "Finalize")
     ]:
@@ -969,12 +800,14 @@ def init(
     with Live(tracker.render(), console=console, refresh_per_second=8, transient=True) as live:
         tracker.attach_refresh(lambda: live.update(tracker.render()))
         try:
-            # Create a httpx client with verify based on skip_tls
-            verify = not skip_tls
-            local_ssl_context = ssl_context if verify else False
-            local_client = httpx.Client(verify=local_ssl_context)
-
-            download_and_extract_template(project_path, selected_ai, selected_script, here, verbose=False, tracker=tracker, client=local_client, debug=debug, github_token=github_token)
+            scaffold_project_from_local_files(
+                project_path,
+                selected_ai,
+                selected_script,
+                here,
+                tracker=tracker,
+                debug=debug,
+            )
 
             # Ensure scripts are executable (POSIX)
             ensure_executable_scripts(project_path, tracker=tracker)

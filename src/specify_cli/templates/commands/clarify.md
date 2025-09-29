@@ -17,7 +17,28 @@ Note: This clarification workflow is expected to run (and be completed) BEFORE i
 
 Execution steps:
 
-1. Run `{SCRIPT}` from repo root **once** (combined `--json --paths-only` mode / `-Json -PathsOnly`). Parse minimal JSON payload fields:
+The user input after `/<command>` can follow two formats:
+1.  **Mono Repo:** `/<command> <project-name> [optional-args]` (e.g., `/clarify @my-app`)
+2.  **Single Project:** `/<command> [optional-args]` (e.g., `/clarify`)
+
+You **MUST** parse the arguments to determine the context.
+
+Given the arguments, do this:
+
+1.  **Parse Arguments**:
+    *   Check if the first argument starts with `@`.
+    *   **If it does**:
+        *   The first argument is the `PROJECT_NAME`.
+        *   Construct the `PROJECT_PATH` like this: `./projects/PROJECT_NAME`.
+    *   **If it does not**:
+        *   There is no `PROJECT_NAME` or `PROJECT_PATH`.
+
+2.  **Execute Script**:
+    *   Run the script defined in `{SCRIPT}` from the repository root.
+    *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
+    *   **Example (Mono Repo, sh):** `scripts/bash/check-prerequisites.sh --json --paths-only --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `scripts/bash/check-prerequisites.sh --json --paths-only`
+    *   Parse the script's JSON output for `FEATURE_DIR` and `FEATURE_SPEC`.
    - `FEATURE_DIR`
    - `FEATURE_SPEC`
    - (Optionally capture `IMPL_PLAN`, `TASKS` for future chained flows.)

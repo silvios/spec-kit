@@ -4,23 +4,36 @@ set -e
 
 # Parse command line arguments
 JSON_MODE=false
+PROJECT_PATH=""
 ARGS=()
 
-for arg in "$@"; do
-    case "$arg" in
-        --json) 
-            JSON_MODE=true 
-            ;;
-        --help|-h) 
-            echo "Usage: $0 [--json]"
-            echo "  --json    Output results in JSON format"
-            echo "  --help    Show this help message"
-            exit 0 
-            ;;
-        *) 
-            ARGS+=("$arg") 
-            ;;
-    esac
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --json)
+      JSON_MODE=true
+      shift
+      ;;
+    --project-path)
+      if [ -n "$2" ]; then
+        PROJECT_PATH="$2"
+        shift 2
+      else
+        echo "Error: --project-path requires a value" >&2
+        exit 1
+      fi
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--json] [--project-path <path>]"
+      echo "  --json            Output results in JSON format"
+      echo "  --project-path    Path to the project in a mono repo"
+      echo "  --help            Show this help message"
+      exit 0
+      ;;
+    *)
+      ARGS+=("$1")
+      shift
+      ;;
+  esac
 done
 
 # Get script directory and load common functions
@@ -28,7 +41,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/common.sh"
 
 # Get all paths and variables from common functions
-eval $(get_feature_paths)
+eval $(get_feature_paths "$PROJECT_PATH")
 
 # Check if we're on a proper feature branch (only for git repos)
 check_feature_branch "$CURRENT_BRANCH" "$HAS_GIT" || exit 1

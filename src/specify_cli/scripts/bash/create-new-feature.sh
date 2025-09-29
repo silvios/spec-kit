@@ -3,18 +3,37 @@
 set -e
 
 JSON_MODE=false
+PROJECT_PATH=""
 ARGS=()
-for arg in "$@"; do
-    case "$arg" in
-        --json) JSON_MODE=true ;;
-        --help|-h) echo "Usage: $0 [--json] <feature_description>"; exit 0 ;;
-        *) ARGS+=("$arg") ;;
-    esac
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --json)
+      JSON_MODE=true
+      shift
+      ;;
+    --project-path)
+      if [ -n "$2" ]; then
+        PROJECT_PATH="$2"
+        shift 2
+      else
+        echo "Error: --project-path requires a value" >&2
+        exit 1
+      fi
+      ;;
+    --help|-h)
+      echo "Usage: $0 [--json] [--project-path <path>] <feature_description>"
+      exit 0
+      ;;
+    *)
+      ARGS+=("$1")
+      shift
+      ;;
+  esac
 done
 
 FEATURE_DESCRIPTION="${ARGS[*]}"
 if [ -z "$FEATURE_DESCRIPTION" ]; then
-    echo "Usage: $0 [--json] <feature_description>" >&2
+    echo "Usage: $0 [--json] [--project-path <path>] <feature_description>" >&2
     exit 1
 fi
 
@@ -50,7 +69,11 @@ fi
 
 cd "$REPO_ROOT"
 
-SPECS_DIR="$REPO_ROOT/specs"
+if [ -n "$PROJECT_PATH" ]; then
+    SPECS_DIR="$PROJECT_PATH/_specs"
+else
+    SPECS_DIR="$REPO_ROOT/_specs"
+fi
 mkdir -p "$SPECS_DIR"
 
 HIGHEST=0

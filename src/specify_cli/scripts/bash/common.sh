@@ -14,6 +14,7 @@ get_repo_root() {
 
 # Get current branch, with fallback for non-git repositories
 get_current_branch() {
+    local project_path_arg="$1"
     # First check if SPECIFY_FEATURE environment variable is set
     if [[ -n "${SPECIFY_FEATURE:-}" ]]; then
         echo "$SPECIFY_FEATURE"
@@ -28,7 +29,12 @@ get_current_branch() {
     
     # For non-git repos, try to find the latest feature directory
     local repo_root=$(get_repo_root)
-    local specs_dir="$repo_root/specs"
+    local specs_dir
+    if [ -n "$project_path_arg" ]; then
+        specs_dir="$project_path_arg/_specs"
+    else
+        specs_dir="$repo_root/_specs"
+    fi
     
     if [[ -d "$specs_dir" ]]; then
         local latest_feature=""
@@ -81,18 +87,24 @@ check_feature_branch() {
     return 0
 }
 
-get_feature_dir() { echo "$1/specs/$2"; }
+get_feature_dir() { echo "$1/_specs/$2"; }
 
 get_feature_paths() {
+    local project_path_arg="$1"
     local repo_root=$(get_repo_root)
-    local current_branch=$(get_current_branch)
+    local current_branch=$(get_current_branch "$project_path_arg")
     local has_git_repo="false"
     
     if has_git; then
         has_git_repo="true"
     fi
     
-    local feature_dir=$(get_feature_dir "$repo_root" "$current_branch")
+    local base_path="$repo_root"
+    if [ -n "$project_path_arg" ]; then
+        base_path="$project_path_arg"
+    fi
+
+    local feature_dir=$(get_feature_dir "$base_path" "$current_branch")
     
     cat <<EOF
 REPO_ROOT='$repo_root'

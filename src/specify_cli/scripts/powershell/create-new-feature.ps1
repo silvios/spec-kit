@@ -3,13 +3,14 @@
 [CmdletBinding()]
 param(
     [switch]$Json,
+    [string]$ProjectPath,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$FeatureDescription
 )
 $ErrorActionPreference = 'Stop'
 
 if (-not $FeatureDescription -or $FeatureDescription.Count -eq 0) {
-    Write-Error "Usage: ./create-new-feature.ps1 [-Json] <feature description>"
+    Write-Error "Usage: ./create-new-feature.ps1 [-Json] [-ProjectPath <path>] <feature description>"
     exit 1
 }
 $featureDesc = ($FeatureDescription -join ' ').Trim()
@@ -57,7 +58,12 @@ try {
 
 Set-Location $repoRoot
 
-$specsDir = Join-Path $repoRoot 'specs'
+if (-not [string]::IsNullOrEmpty($ProjectPath)) {
+    $specsDir = Join-Path $ProjectPath '_specs'
+}
+else {
+    $specsDir = Join-Path $repoRoot '_specs'
+}
 New-Item -ItemType Directory -Path $specsDir -Force | Out-Null
 
 $highest = 0
