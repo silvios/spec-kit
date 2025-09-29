@@ -30,8 +30,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
+    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
     *   Parse the script's JSON output for `FEATURE_DIR` and `AVAILABLE_DOCS`. All paths must be absolute.
 
 2. Load and analyze the implementation context:

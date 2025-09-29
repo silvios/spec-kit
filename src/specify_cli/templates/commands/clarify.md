@@ -36,8 +36,8 @@ Given the arguments, do this:
 2.  **Execute Script**:
     *   Run the script defined in `{SCRIPT}` from the repository root.
     *   If you identified a `PROJECT_PATH`, you **must** pass it to the script using the `--project-path` (for .sh) or `-ProjectPath` (for .ps1) argument.
-    *   **Example (Mono Repo, sh):** `scripts/bash/check-prerequisites.sh --json --paths-only --project-path ./projects/@my-app`
-    *   **Example (Single Project, sh):** `scripts/bash/check-prerequisites.sh --json --paths-only`
+    *   **Example (Mono Repo, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --paths-only --project-path ./projects/@my-app`
+    *   **Example (Single Project, sh):** `.specify/scripts/bash/check-prerequisites.sh --json --paths-only`
     *   Parse the script's JSON output for `FEATURE_DIR` and `FEATURE_SPEC`.
    - `FEATURE_DIR`
    - `FEATURE_SPEC`
