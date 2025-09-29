@@ -439,55 +439,22 @@ def init_git_repo(project_path: Path, quiet: bool = False) -> bool:
 def _convert_md_to_toml(md_content: str) -> str:
     """Convert markdown with frontmatter to a TOML string for Gemini/Claude commands."""
 
-    # Safely parse frontmatter and content
     frontmatter_match = re.match(r"---\n(.*?)\n---\n(.*)", md_content, re.DOTALL)
     if not frontmatter_match:
-        # If no frontmatter, treat the whole file as the prompt
         frontmatter_text = ""
     else:
         frontmatter_text = frontmatter_match.group(1)
 
-    # Description from frontmatter
     description_match = re.search(r"description:\s*(.*)", frontmatter_text)
     description = description_match.group(1).strip() if description_match else ""
 
-    # Gemini-specific 'tool' definition from scripts
-    scripts_sh_match = re.search(r"sh:\s*(.*)", frontmatter_text)
-    scripts_ps_match = re.search(r"ps:\s*(.*)", frontmatter_text)
-
-    sh_command = scripts_sh_match.group(1).strip() if scripts_sh_match else ""
-    ps_command = scripts_ps_match.group(1).strip() if scripts_ps_match else ""
-
-    # Build TOML sections
     toml_parts = []
     if description:
         toml_parts.append(f'description = "{description}"')
 
-    # Add prompt with multiline string syntax, keeping the full original content
+    # Per user feedback, the prompt should contain the full original markdown content.
+    # The tool definition will not be included in the TOML.
     toml_parts.append(f'prompt = """\n{md_content.strip()}\n"""')
-
-    # Add tool configuration, preferring PowerShell on Windows
-    # Note: This logic can be simplified if both script types are always present
-    if os.name == 'nt' and ps_command:
-        executable = ps_command.split()[0]
-        args = ps_command.split()[1:]
-        # Gemini tools expect 'powershell.exe' or 'pwsh.exe'
-        if executable.lower().endswith(".ps1"):
-             executable = "powershell.exe"
-
-        toml_parts.append("\n[[tool.powershell]]")
-        toml_parts.append(f'command = "{executable}"')
-        # Format args as a TOML array of strings
-        toml_parts.append(f'args = {json.dumps(args)}')
-
-    elif sh_command: # Default to bash/sh
-        executable = sh_command.split()[0]
-        args = sh_command.split()[1:]
-
-        toml_parts.append("\n[[tool.bash]]")
-        toml_parts.append(f'command = "{executable}"')
-        # Format args as a TOML array of strings
-        toml_parts.append(f'args = {json.dumps(args)}')
 
     return "\n".join(toml_parts)
 
@@ -589,12 +556,10 @@ def scaffold_project_from_local_files(
                 dest_file = dest_command_dir / f"{command_template.stem}{config['ext']}"
 
                 if config['ext'] == '.toml':
-                    # Convert to TOML for Gemini/Claude
                     md_content = command_template.read_text(encoding="utf-8")
                     toml_content = _convert_md_to_toml(md_content)
                     dest_file.write_text(toml_content, encoding="utf-8")
                 else:
-                    # Just copy for other agents
                     shutil.copy(command_template, dest_file)
 
             if tracker:
